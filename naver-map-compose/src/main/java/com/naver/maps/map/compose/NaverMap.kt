@@ -74,13 +74,14 @@ public fun NaverMap(
     onOptionChange: () -> Unit = {},
     onSymbolClick: (Symbol) -> Boolean = { false },
     onIndoorSelectionChange: (IndoorSelection?) -> Unit = {},
+    onLogoClick: (() -> Unit)? = null,
     contentPadding: PaddingValues = NoPadding,
     content: @Composable @NaverMapComposable () -> Unit = {},
 ) {
     val context = LocalContext.current
     val mapView = remember { MapView(context, NaverMapOptions()) }
 
-    AndroidView(modifier = modifier, factory = { unwrapAppCompat(mapView) })
+    AndroidView(modifier = modifier, factory = { unwrapAppCompat(mapView, onLogoClick) })
     MapLifecycle(mapView)
 
     // rememberUpdatedState and friends are used here to make these values observable to
@@ -195,15 +196,18 @@ private fun MapLifecycle(mapView: MapView) {
                 Lifecycle.Event.ON_CREATE, Lifecycle.Event.ON_STOP -> {
                     mapView.onDestroy()
                 }
+
                 Lifecycle.Event.ON_START, Lifecycle.Event.ON_PAUSE -> {
                     mapView.onStop()
                     mapView.onDestroy()
                 }
+
                 Lifecycle.Event.ON_RESUME -> {
                     mapView.onPause()
                     mapView.onStop()
                     mapView.onDestroy()
                 }
+
                 else -> {}
             }
         }
@@ -251,16 +255,24 @@ private fun MapView.componentCallbacks(): ComponentCallbacks {
  * AppCompat Theme를 사용하지 않더라도 아이콘이 적절히 보여질 수 있도록
  * 네이버지도 SDK 내부에서 생성되는 Widget 중 [srcCompat] 속성으로 이미지가 설정되는 부분을 직접 설정한다.
  */
-private fun unwrapAppCompat(mapView: MapView): MapView = mapView.apply {
-    val compassIcon: ImageView = findViewById(com.naver.maps.map.R.id.navermap_compass_icon)
-    compassIcon.setImageResource(com.naver.maps.map.R.drawable.navermap_compass)
+private fun unwrapAppCompat(mapView: MapView, onLogoClick: (() -> Unit)?): MapView = mapView
+    .apply {
+        val compassIcon: ImageView = findViewById(com.naver.maps.map.R.id.navermap_compass_icon)
+        compassIcon.setImageResource(com.naver.maps.map.R.drawable.navermap_compass)
 
-    val locationIcon: ImageView = findViewById(com.naver.maps.map.R.id.navermap_location_icon)
-    locationIcon.setImageResource(com.naver.maps.map.R.drawable.navermap_location_none_normal)
+        val locationIcon: ImageView = findViewById(com.naver.maps.map.R.id.navermap_location_icon)
+        locationIcon.setImageResource(com.naver.maps.map.R.drawable.navermap_location_none_normal)
 
-    val zoomInIcon: ImageView = findViewById(com.naver.maps.map.R.id.navermap_zoom_in)
-    zoomInIcon.setImageResource(com.naver.maps.map.R.drawable.navermap_zoom_in)
+        val zoomInIcon: ImageView = findViewById(com.naver.maps.map.R.id.navermap_zoom_in)
+        zoomInIcon.setImageResource(com.naver.maps.map.R.drawable.navermap_zoom_in)
 
-    val zoomOutIcon: ImageView = findViewById(com.naver.maps.map.R.id.navermap_zoom_out)
-    zoomOutIcon.setImageResource(com.naver.maps.map.R.drawable.navermap_zoom_out)
-}
+        val zoomOutIcon: ImageView = findViewById(com.naver.maps.map.R.id.navermap_zoom_out)
+        zoomOutIcon.setImageResource(com.naver.maps.map.R.drawable.navermap_zoom_out)
+
+        onLogoClick?.let { onLogoClick ->
+            val logoIcon: ImageView = findViewById(com.naver.maps.map.R.id.navermap_logo)
+            logoIcon.setOnClickListener {
+                onLogoClick()
+            }
+        }
+    }
